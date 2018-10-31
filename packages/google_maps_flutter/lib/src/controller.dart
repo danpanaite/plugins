@@ -62,6 +62,12 @@ class GoogleMapController extends ChangeNotifier {
   Set<Marker> get markers => Set<Marker>.from(_markers.values);
   final Map<String, Marker> _markers = <String, Marker>{};
 
+  /// The current set of circles on this map.
+  ///
+  /// The returned set will be a detached snapshot of the markers collection.
+  Set<Circle> get circles => Set<Circle>.from(_circles.values);
+  final Map<String, Circle> _circles = <String, Circle>{};
+
   /// True if the map camera is currently moving.
   bool get isCameraMoving => _isCameraMoving;
   bool _isCameraMoving = false;
@@ -167,6 +173,28 @@ class GoogleMapController extends ChangeNotifier {
     _markers[markerId] = marker;
     notifyListeners();
     return marker;
+  }
+
+  /// Adds a circle to the map, configured using the specified custom [options].
+  ///
+  /// Change listeners are notified once the marker has been added on the
+  /// platform side.
+  ///
+  /// The returned [Future] completes with the added marker once listeners have
+  /// been notified.
+  Future<Circle> addCircle(CircleOptions options) async {
+    final CircleOptions effectiveOptions =
+        CircleOptions.defaultOptions.copyWith(options);
+    final String circleId = await _channel.invokeMethod(
+      'circle#add',
+      <String, dynamic>{
+        'options': effectiveOptions._toJson(),
+      },
+    );
+    final Circle circle = Circle(circleId, effectiveOptions);
+    _circles[circleId] = circle;
+    notifyListeners();
+    return circle;
   }
 
   /// Updates the specified [marker] with the given [changes]. The marker must
